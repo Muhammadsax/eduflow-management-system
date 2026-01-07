@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from urllib.parse import urlparse  # ✅ تم التغيير هنا
+from urllib.parse import urlparse
 from eduflow_app.auth import bp
 from eduflow_app.forms import LoginForm, RegistrationForm
 from eduflow_app.models import User, Student, Teacher
@@ -8,9 +8,8 @@ from eduflow_app.extensions import db
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """صفحة تسجيل الدخول"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.dashboard'))
     
     form = LoginForm()
     
@@ -33,8 +32,8 @@ def login():
         flash(f'مرحباً بعودتك {user.first_name}!', 'success')
         
         next_page = request.args.get('next')
-        if not next_page or urlparse(next_page).netloc != '':  # ✅ تم التغيير هنا
-            next_page = url_for('main.index')
+        if not next_page or urlparse(next_page).netloc != '':
+            next_page = url_for('main.dashboard')
         
         return redirect(next_page)
     
@@ -42,9 +41,8 @@ def login():
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """صفحة تسجيل حساب جديد"""
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.dashboard'))
     
     form = RegistrationForm()
     
@@ -82,14 +80,13 @@ def register():
         login_user(user)
         
         flash('تم إنشاء حسابك بنجاح! مرحباً بك في EduFlow', 'success')
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.dashboard'))
     
     return render_template('auth/register.html', title='تسجيل حساب جديد', form=form)
 
 @bp.route('/logout')
 @login_required
 def logout():
-    """تسجيل الخروج"""
     logout_user()
     flash('تم تسجيل الخروج بنجاح', 'info')
     return redirect(url_for('main.index'))

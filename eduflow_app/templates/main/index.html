@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-4">مرحباً بكم في EduFlow</h1>
+    <p class="lead">نظام إدارة التعليم المتكامل</p>
+    
+    {% if not current_user.is_authenticated %}
+    <div class="mt-5">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg mx-2">
+            <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+        </a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg mx-2">
+            <i class="fas fa-user-plus"></i> إنشاء حساب جديد
+        </a>
+    </div>
+    {% else %}
+    <div class="mt-5">
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-success btn-lg">
+            <i class="fas fa-tachometer-alt"></i> الذهاب إلى لوحة التحكم
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

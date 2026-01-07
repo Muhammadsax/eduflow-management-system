@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - EduFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        لوحة التحكم
+                    </h3>
+                    <p class="text-muted">
+                        مرحباً {{ full_name }} ({{ role_arabic }})
+                        {% if student_id %}
+                            - رقم الطالب: {{ student_id }}
+                        {% elif teacher_id %}
+                            - رقم المعلم: {{ teacher_id }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- بطاقة الترحيب -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-primary text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-user-circle fa-3x"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title">مرحباً بعودتك!</h5>
+                            <p class="card-text mb-0">{{ full_name }}</p>
+                            <small class="opacity-75">{{ role_arabic }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة الوقت والتاريخ -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-calendar-alt me-2"></i> التاريخ والوقت</h5>
+                    <h3 id="currentDate" class="my-3">{{ now.strftime('%Y-%m-%d') }}</h3>
+                    <h4 id="currentTime">{{ now.strftime('%I:%M %p') }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة الإحصائيات -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-success text-white shadow">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-chart-line me-2"></i> الحالة</h5>
+                    <div class="display-4 my-3">
+                        {% if user.role == 'student' %}
+                        <i class="fas fa-graduation-cap"></i>
+                        {% elif user.role == 'teacher' %}
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        {% else %}
+                        <i class="fas fa-user-shield"></i>
+                        {% endif %}
+                    </div>
+                    <p>حسابك {{ 'مفعل' if user.is_active else 'معطل' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- محتوى حسب الدور -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-th-large me-2"></i>
+                        الوحدات المتاحة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if user.role == 'student' %}
+                            <!-- وحدات الطالب -->
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-primary mb-3">
+                                            <i class="fas fa-book fa-3x"></i>
+                                        </div>
+                                        <h6>المواد الدراسية</h6>
+                                        <small class="text-muted">عرض المواد المسجلة</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-success mb-3">
+                                            <i class="fas fa-chart-bar fa-3x"></i>
+                                        </div>
+                                        <h6>الدرجات</h6>
+                                        <small class="text-muted">عرض النتائج والتقييم</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-warning mb-3">
+                                            <i class="fas fa-book-reader fa-3x"></i>
+                                        </div>
+                                        <h6>المكتبة</h6>
+                                        <small class="text-muted">تصفح الكتب الإلكترونية</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-info mb-3">
+                                            <i class="fas fa-comments fa-3x"></i>
+                                        </div>
+                                        <h6>المنتدى</h6>
+                                        <small class="text-muted">النقاشات التعليمية</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                        {% elif user.role == 'teacher' %}
+                            <!-- وحدات المعلم -->
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-primary mb-3">
+                                            <i class="fas fa-chalkboard-teacher fa-3x"></i>
+                                        </div>
+                                        <h6>المقررات</h6>
+                                        <small class="text-muted">إدارة المواد الدراسية</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-success mb-3">
+                                            <i class="fas fa-tasks fa-3x"></i>
+                                        </div>
+                                        <h6>التقييم</h6>
+                                        <small class="text-muted">تسجيل درجات الطلاب</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-warning mb-3">
+                                            <i class="fas fa-upload fa-3x"></i>
+                                        </div>
+                                        <h6>رفع المحتوى</h6>
+                                        <small class="text-muted">رفع المواد التعليمية</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-info mb-3">
+                                            <i class="fas fa-users fa-3x"></i>
+                                        </div>
+                                        <h6>الطلاب</h6>
+                                        <small class="text-muted">إدارة قوائم الطلاب</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                        {% elif user.role == 'admin' %}
+                            <!-- وحدات المدير -->
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-primary mb-3">
+                                            <i class="fas fa-users-cog fa-3x"></i>
+                                        </div>
+                                        <h6>المستخدمين</h6>
+                                        <small class="text-muted">إدارة حسابات المستخدمين</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-success mb-3">
+                                            <i class="fas fa-cogs fa-3x"></i>
+                                        </div>
+                                        <h6>الإعدادات</h6>
+                                        <small class="text-muted">إعدادات النظام</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-warning mb-3">
+                                            <i class="fas fa-chart-pie fa-3x"></i>
+                                        </div>
+                                        <h6>الإحصائيات</h6>
+                                        <small class="text-muted">تقارير وأرقام النظام</small>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="card text-center h-100 text-decoration-none">
+                                    <div class="card-body">
+                                        <div class="text-info mb-3">
+                                            <i class="fas fa-file-invoice-dollar fa-3x"></i>
+                                        </div>
+                                        <h6>المالية</h6>
+                                        <small class="text-muted">إدارة المدفوعات</small>
+                                    </div>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// تحديث الوقت الحالي
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ar-SA', { hour12: true });
+    const dateString = now.toLocaleDateString('ar-SA');
+    
+    document.getElementById('currentTime').textContent = timeString;
+    document.getElementById('currentDate').textContent = dateString;
+}
+
+setInterval(updateTime, 1000);
+updateTime();
+</script>
+{% endblock %}
