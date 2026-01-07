@@ -1,6 +1,6 @@
 from flask import Flask
 from config import Config
-from .extensions import db, login_manager, migrate
+from .extensions import db, login_manager
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -9,9 +9,12 @@ def create_app(config_class=Config):
     # تهيئة الامتدادات
     db.init_app(app)
     login_manager.init_app(app)
-    migrate.init_app(app, db)  # إضافة migrate هنا
     
-    # سنقوم بتسجيل الـ Blueprints لاحقًا
+    # تسجيل Blueprint وحدة المصادقة
+    from eduflow_app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    
+    # سنقوم بتسجيل باقي الـ Blueprints لاحقًا
     
     # إنشاء جداول قاعدة البيانات
     with app.app_context():

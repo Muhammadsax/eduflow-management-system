@@ -1,7 +1,8 @@
 from datetime import datetime
-from flask_login import UserMixin
+from flask_login import LoginManager, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from .extensions import db
+from .extensions import db , login_manager
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -15,9 +16,26 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(64))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
+    def set_password(self, password):
+        """تشفير كلمة المرور وحفظها"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """التحقق من كلمة المرور"""
+        if not self.password_hash:
+            return False
+        return check_password_hash(self.password_hash, password)
+    
+    def get_full_name(self):
+        """الحصول على الاسم الكامل"""
+        return f"{self.first_name} {self.last_name}"
 
     # علاقة واحدة لواحدة مع Student
-    student_profile = db.relationship('Student', backref='user', uselist=False, cascade="all, delete-orphan")
+    student_profile = db.relationship('Student', back_populates='user', uselist=False, cascade="all, delete-orphan")
 
     # علاقة واحدة لواحدة مع Teacher
     teacher_profile = db.relationship('Teacher', backref='user', uselist=False, cascade="all, delete-orphan")
@@ -28,7 +46,7 @@ class Student(db.Model):
     __tablename__ = 'students'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user = db.relationship('User', back_populates='student_profile')
     student_id = db.Column(db.String(20), unique=True)  # رقم الطالب
     grade = db.Column(db.String(20))  # الصف
     section = db.Column(db.String(20))  # القسم
@@ -36,8 +54,6 @@ class Student(db.Model):
     parent_name = db.Column(db.String(128))
     parent_phone = db.Column(db.String(20))
     parent_email = db.Column(db.String(120))
-
-    # العلاقة العكسية: من User إلى Student (واحد لواحد) تم تعريفها في User
 
     # علاقة واحدة لكثير: طالب لديه عدة درجات
     grades = db.relationship('Grade', backref='student', lazy=True, cascade="all, delete-orphan")
@@ -60,7 +76,8 @@ class Teacher(db.Model):
     qualification = db.Column(db.Text)
 
     # العلاقة العكسية: من User إلى Teacher (واحد لواحد) تم تعريفها في User
-
+    user = db.relationship('User', backref=db.backref('teacher_profile', uselist=False))
+    
     # علاقة واحدة لكثير: معلم يقوم بتدريس عدة كورسات
     courses = db.relationship('Course', backref='teacher', lazy=True, cascade="all, delete-orphan")
 
@@ -70,6 +87,24 @@ class Teacher(db.Model):
 
 class Course(db.Model):
     __tablename__ = 'courses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), unique=True, nullable=False)
+    course_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    credit_hours = db.Column(db.Integer, default=3)  # ساعات معتمدة
+    semester = db.Column(db.String(20))  # فصل دراسي
+    year = db.Column(db.Integer)  # السنة الدراسية
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    
+    # إضافة علاقة مع Enrollment
+    enrollments = db.relationship('Enrollment', backref='course_enrollments', lazy=True, cascade="all, delete-orphan")
+    
+    # علاقة واحدة لكثير: كورس لديه عدة درجات (لعدة طلاب)
+    grades = db.relationship('Grade', backref='course', lazy=True, cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<Course {self.course_code}>'    __tablename__ = 'courses'
 
     id = db.Column(db.Integer, primary_key=True)
     course_code = db.Column(db.String(20), unique=True, nullable=False)
@@ -130,3 +165,103 @@ class Book(db.Model):
 
     def __repr__(self):
         return f'<Book {self.title}>'
+    
+class ForumPost(db.Model):
+    __tablename__ = 'forum_posts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), default='general')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_pinned = db.Column(db.Boolean, default=False)
+    views = db.Column(db.Integer, default=0)
+    
+    # العلاقات
+    user = db.relationship('User', backref='forum_posts')
+    comments = db.relationship('ForumComment', backref='post', lazy=True, cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f'<ForumPost {self.title[:30]}...>'
+    
+class ForumComment(db.Model):
+    __tablename__ = 'forum_comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('forum_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    parent_id = db.Column(db.Integer, db.ForeignKey('forum_comments.id'), nullable=True)  # للردود المتداخلة
+    
+    # العلاقات
+    user = db.relationship('User', backref='forum_comments')
+    replies = db.relationship('ForumComment', backref=db.backref('parent', remote_side=[id]), lazy=True)
+    
+    def __repr__(self):
+        return f'<ForumComment by User:{self.user_id} on Post:{self.post_id}>'
+    
+class Message(db.Model):
+    __tablename__ = 'messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    subject = db.Column(db.String(200))
+    content = db.Column(db.Text, nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+    is_urgent = db.Column(db.Boolean, default=False)
+    
+    # العلاقات
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+    
+    def __repr__(self):
+        return f'<Message from {self.sender_id} to {self.receiver_id}>'
+    
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50))  # grade, payment, message, forum, etc.
+    related_id = db.Column(db.Integer)  # ID of related item (grade_id, message_id, etc.)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+    
+    # العلاقة
+    user = db.relationship('User', backref='notifications')
+    
+    def __repr__(self):
+        return f'<Notification for User:{self.user_id} - {self.title[:30]}...>'
+    
+class Enrollment(db.Model):
+    __tablename__ = 'enrollments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    enrollment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')  # active, completed, dropped
+    
+    # لمنع التسجيل المزدوج
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'course_id', name='unique_enrollment'),
+    )
+    
+    # العلاقات
+    student = db.relationship('Student', backref='enrollments')
+    course = db.relationship('Course', backref='enrollments')
+    
+    def __repr__(self):
+        return f'<Enrollment Student:{self.student_id} in Course:{self.course_id}>'
+# هذه الدالة مطلوبة لـ Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
